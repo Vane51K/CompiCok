@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CompiCok — Compiler Translator Simulator</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- Google Fonts: Orbitron (futuristic display) + Fira Code (monospace) + DM Sans (body) -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Fira+Code:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <!-- Feather Icons -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/feather-icons/4.29.0/feather.min.js"></script>
+</head>
+<body>
+
+  <!-- ========== ANIMATED BACKGROUND GRID ========== -->
+  <canvas id="bg-canvas"></canvas>
+
+  <!-- ========== HEADER / NAV ========== -->
+  <header class="header">
+    <div class="header-left">
+      <div class="logo-wrap">
+        <svg class="logo-icon" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="2" width="36" height="36" rx="8" stroke="url(#logoGrad)" stroke-width="2"/>
+          <path d="M10 20 L16 14 L22 20 L16 26 Z" fill="url(#logoGrad)" opacity="0.9"/>
+          <path d="M18 20 L24 14 L30 20 L24 26 Z" fill="url(#logoGrad2)" opacity="0.7"/>
+          <defs>
+            <linearGradient id="logoGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#00f5ff"/>
+              <stop offset="100%" stop-color="#7b2fff"/>
+            </linearGradient>
+            <linearGradient id="logoGrad2" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#7b2fff"/>
+              <stop offset="100%" stop-color="#ff2fff"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <div class="logo-text">
+          <span class="logo-name">CompiCok</span>
+          <span class="logo-sub">Compiler Translator Simulator</span>
+        </div>
+      </div>
+    </div>
+
+    <nav class="header-nav">
+      <button class="lang-btn active" id="btn-en" onclick="setSourceLang('en')">
+        <span class="flag">🇺🇸</span> ENGLISH
+      </button>
+      <div class="nav-divider"></div>
+      <button class="lang-btn" id="btn-es" onclick="setSourceLang('es')">
+        <span class="flag">🇪🇸</span> ESPAÑOL
+      </button>
+      <div class="nav-divider"></div>
+      <button class="lang-btn" onclick="autoDetect()">
+        <i data-feather="zap" class="btn-icon-sm"></i> AUTO-DETECT
+      </button>
+      <div class="nav-divider"></div>
+      <button class="lang-btn" id="more-btn" onclick="toggleMoreMenu()">
+        <i data-feather="more-horizontal" class="btn-icon-sm"></i> MORE
+      </button>
+    </nav>
+
+    <!-- Dropdown More Menu -->
+    <div class="more-menu" id="more-menu" hidden>
+      <button onclick="loadSample('python')"><i data-feather="code"></i> Python Sample</button>
+      <button onclick="loadSample('js')"><i data-feather="file-text"></i> JS Sample</button>
+      <button onclick="loadSample('generic')"><i data-feather="align-left"></i> Text Sample</button>
+      <button onclick="exportOutput()"><i data-feather="download"></i> Export Output</button>
+    </div>
+  </header>
+
+  <!-- ========== MAIN TRANSLATION AREA ========== -->
+  <main class="main-content">
+
+    <!-- STATUS BADGE -->
+    <div class="status-bar">
+      <span class="status-dot"></span>
+      <span class="status-text" id="status-text">Ready — Enter text or code to translate</span>
+      <span class="version-badge">v2.4.1 — Compilers Project 2026</span>
+    </div>
+
+    <!-- TRANSLATION PANELS -->
+    <section class="panels-row">
+
+      <!-- LEFT: SOURCE (ENGLISH) -->
+      <div class="panel panel-source" id="panel-source">
+        <div class="panel-header">
+          <span class="panel-flag">🇺🇸</span>
+          <span class="panel-label">SOURCE LANGUAGE:</span>
+          <span class="panel-lang" id="source-lang-label">ENGLISH</span>
+          <div class="panel-header-right">
+            <span class="char-counter" id="char-counter">0 / 2000</span>
+          </div>
+        </div>
+
+        <div class="panel-body">
+          <div class="code-line-nums" id="line-nums-src">1</div>
+          <textarea
+            id="input-text"
+            class="code-area"
+            placeholder="// Enter English code or text here...&#10;&#10;import math&#10;&#10;def calculate_area(radius):&#10;    # Calculate circle area&#10;    return math.pi * pow(radius, 2)"
+            spellcheck="false"
+            oninput="onInputChange()"
+          ></textarea>
+        </div>
+
+        <div class="panel-footer">
+          <!-- Voice -->
+          <button class="footer-btn" id="voice-btn" onclick="startVoice()" title="Voice Recognition">
+            <i data-feather="mic"></i>
+            <span>Voice</span>
+          </button>
+          <!-- Upload TXT -->
+          <label class="footer-btn" title="Upload TXT File">
+            <i data-feather="upload"></i>
+            <span>Upload TXT</span>
+            <input type="file" accept=".txt" id="file-input" onchange="uploadFile(event)" hidden />
+          </label>
+          <!-- Clear -->
+          <button class="footer-btn" onclick="clearAll()" title="Clear">
+            <i data-feather="trash-2"></i>
+            <span>Clear</span>
+          </button>
+          <!-- TRANSLATE (primary CTA) -->
+          <button class="btn-translate" id="btn-translate" onclick="translate()">
+            <i data-feather="cpu"></i>
+            <span>TRANSLATE</span>
+            <div class="btn-glow"></div>
+          </button>
+        </div>
+      </div>
+
+      <!-- SWAP ARROW -->
+      <div class="swap-col">
+        <button class="swap-btn" onclick="swapLanguages()" title="Swap Languages">
+          <i data-feather="repeat"></i>
+        </button>
+      </div>
+
+      <!-- RIGHT: OUTPUT (SPANISH) -->
+      <div class="panel panel-output" id="panel-output">
+        <div class="panel-header">
+          <span class="panel-flag">🇪🇸</span>
+          <span class="panel-label">OUTPUT LANGUAGE:</span>
+          <span class="panel-lang" id="output-lang-label">ESPAÑOL</span>
+          <div class="panel-header-right">
+            <span class="output-stats" id="output-stats">0 chars | 0 lines</span>
+          </div>
+        </div>
+
+        <div class="panel-body output-body">
+          <div class="code-line-nums" id="line-nums-out">1</div>
+          <div class="code-area output-area" id="output-text">
+            <span class="output-placeholder">// La traducción aparecerá aquí...</span>
+          </div>
+          <!-- Loading overlay -->
+          <div class="output-loading" id="output-loading" hidden>
+            <div class="spinner"></div>
+            <span>Compiling & Translating…</span>
+          </div>
+        </div>
+
+        <div class="panel-footer">
+          <button class="footer-btn" onclick="listenOutput()" title="Listen">
+            <i data-feather="volume-2"></i>
+            <span>Listen</span>
+          </button>
+          <button class="footer-btn" onclick="copyOutput()" id="copy-btn" title="Copy">
+            <i data-feather="copy"></i>
+            <span>Copy</span>
+          </button>
+          <button class="footer-btn" onclick="exportOutput()" title="Export">
+            <i data-feather="download"></i>
+            <span>Export</span>
+          </button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ========== COMPILER ANALYTICS SECTION ========== -->
+    <section class="analytics-section">
+      <div class="analytics-header" onclick="toggleAnalytics()">
+        <div class="analytics-title">
+          <i data-feather="activity"></i>
+          <span>COMPILER ANALYTICS</span>
+        </div>
+        <div class="analytics-header-right">
+          <span class="analytics-badge" id="token-count-badge">0 tokens</span>
+          <i data-feather="chevron-down" id="analytics-chevron"></i>
+        </div>
+      </div>
+
+      <div class="analytics-body" id="analytics-body">
+        <!-- TABS -->
+        <div class="tab-bar">
+          <button class="tab-btn active" onclick="switchTab('tokens', this)">
+            <i data-feather="hash"></i> Tokens Generated
+          </button>
+          <button class="tab-btn" onclick="switchTab('symbols', this)">
+            <i data-feather="book-open"></i> Symbol Table
+          </button>
+          <button class="tab-btn" onclick="switchTab('errors', this)">
+            <i data-feather="alert-triangle"></i> Error Table
+          </button>
+          <button class="tab-btn" onclick="switchTab('tree', this)">
+            <i data-feather="git-branch"></i> Syntax Tree
+          </button>
+          <button class="tab-btn" onclick="switchTab('semantic', this)">
+            <i data-feather="layers"></i> Semantic Analysis
+          </button>
+        </div>
+
+        <!-- TAB CONTENT -->
+        <div class="tab-content" id="tab-content">
+
+          <!-- TOKENS TAB -->
+          <div class="tab-panel active" id="tab-tokens">
+            <div class="tokens-label">TOKENS:</div>
+            <div class="token-list" id="token-list">
+              <div class="token-empty">
+                <i data-feather="cpu"></i>
+                <p>Run a translation to generate tokens</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- SYMBOL TABLE TAB -->
+          <div class="tab-panel" id="tab-symbols">
+            <div class="table-wrap">
+              <table class="compiler-table" id="symbol-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Identifier</th>
+                    <th>Type</th>
+                    <th>Scope</th>
+                    <th>Line</th>
+                    <th>Value</th>
+                  </tr>
+                </thead>
+                <tbody id="symbol-tbody">
+                  <tr class="empty-row">
+                    <td colspan="6">No symbols detected. Run translation first.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- ERROR TABLE TAB -->
+          <div class="tab-panel" id="tab-errors">
+            <div class="table-wrap">
+              <table class="compiler-table error-table" id="error-tbl">
+                <thead>
+                  <tr>
+                    <th>Severity</th>
+                    <th>Line</th>
+                    <th>Col</th>
+                    <th>Phase</th>
+                    <th>Message</th>
+                    <th>Fix Hint</th>
+                  </tr>
+                </thead>
+                <tbody id="error-tbody">
+                  <tr class="empty-row">
+                    <td colspan="6">No errors found. Run translation first.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="error-banner" id="error-banner" hidden></div>
+          </div>
+
+          <!-- SYNTAX TREE TAB -->
+          <div class="tab-panel" id="tab-tree">
+            <div class="tree-wrap" id="tree-wrap">
+              <div class="tree-placeholder">
+                <i data-feather="git-branch"></i>
+                <p>Abstract Syntax Tree will render here after translation</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- SEMANTIC ANALYSIS TAB -->
+          <div class="tab-panel" id="tab-semantic">
+            <div class="semantic-grid" id="semantic-grid">
+              <div class="semantic-card">
+                <div class="sem-icon"><i data-feather="check-circle"></i></div>
+                <div class="sem-info">
+                  <div class="sem-label">Type Checking</div>
+                  <div class="sem-value" id="sem-type">—</div>
+                </div>
+              </div>
+              <div class="semantic-card">
+                <div class="sem-icon"><i data-feather="link"></i></div>
+                <div class="sem-info">
+                  <div class="sem-label">Scope Resolution</div>
+                  <div class="sem-value" id="sem-scope">—</div>
+                </div>
+              </div>
+              <div class="semantic-card">
+                <div class="sem-icon"><i data-feather="box"></i></div>
+                <div class="sem-info">
+                  <div class="sem-label">Declarations</div>
+                  <div class="sem-value" id="sem-decl">—</div>
+                </div>
+              </div>
+              <div class="semantic-card">
+                <div class="sem-icon"><i data-feather="zap"></i></div>
+                <div class="sem-info">
+                  <div class="sem-label">Undefined References</div>
+                  <div class="sem-value" id="sem-undef">—</div>
+                </div>
+              </div>
+              <div class="semantic-card">
+                <div class="sem-icon"><i data-feather="repeat"></i></div>
+                <div class="sem-info">
+                  <div class="sem-label">Redeclarations</div>
+                  <div class="sem-value" id="sem-redecl">—</div>
+                </div>
+              </div>
+              <div class="semantic-card">
+                <div class="sem-icon"><i data-feather="shield"></i></div>
+                <div class="sem-info">
+                  <div class="sem-label">Semantic Status</div>
+                  <div class="sem-value" id="sem-status">—</div>
+                </div>
+              </div>
+            </div>
+            <div class="semantic-log" id="semantic-log">
+              <div class="sem-log-title">Semantic Log</div>
+              <div id="sem-log-entries">
+                <span class="sem-placeholder">Analysis log will appear here after translation.</span>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /tab-content -->
+      </div><!-- /analytics-body -->
+    </section>
+
+  </main>
+
+  <!-- ========== FOOTER ========== -->
+  <footer class="footer">
+    <span>© Universidad Mariano Gálvez — Compilers Project 2026</span>
+    <span class="footer-sep">|</span>
+    <span>Built with <span class="heart">♥</span> by the CompiCok Team</span>
+    <span class="footer-sep">|</span>
+    <a href="javascript:void(0)" onclick="showDocs(event)">Developer Docs</a>
+  </footer>
+
+  <!-- ========== DOCS MODAL ========== -->
+  <div class="modal-overlay" id="modal-overlay" hidden onclick="closeDocs(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Developer Documentation</h2>
+        <button type="button" onclick="closeDocs(event)"><i data-feather="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <h3>📁 File Structure</h3>
+        <pre class="doc-code">CompiCok/
+├── index.html   ← Structure & markup
+├── style.css    ← All visual styling
+└── script.js    ← Logic, simulation, interactivity</pre>
+
+        <h3>⚙️ index.html</h3>
+        <p>Contains the full semantic HTML layout: header navigation, translation panels, compiler analytics tabs, and the footer. All IDs and classes are hooked into <code>script.js</code> and <code>style.css</code>.</p>
+
+        <h3>🎨 style.css</h3>
+        <p>Uses CSS custom properties (<code>--color-*</code>) for the theme. Includes animations (neon glow, spinner, stagger reveals), responsive media queries, and grid/flex layouts.</p>
+
+        <h3>🧠 script.js</h3>
+        <p>Simulates a lexical analyzer (tokenizer), symbol table builder, error detector, AST renderer, and semantic analyzer — all in plain JavaScript. Functions map directly to UI actions.</p>
+
+        <h3>🐍 Future Flask Integration</h3>
+        <pre class="doc-code">// In script.js, replace simulateTranslation() with:
+async function translate() {
+  const res = await fetch('http://localhost:5000/translate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text: inputText, lang: sourceLang })
+  });
+  const data = await res.json();
+  renderOutput(data.translation);
+  renderTokens(data.tokens);
+  renderErrors(data.errors);
+}</pre>
+        <p>Your Flask backend should expose <code>POST /translate</code> returning <code>{translation, tokens, symbols, errors, ast}</code>.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== TOAST NOTIFICATION ========== -->
+  <div class="toast" id="toast"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
